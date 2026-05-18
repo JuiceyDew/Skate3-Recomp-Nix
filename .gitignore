@@ -1,0 +1,31 @@
+# Build output and generated recompilation sources
+/out/
+/build/
+/generated/
+
+# Local game dump and retail media. Users must provide their own copy.
+/game/
+*.iso
+*.xex
+
+# Local runtime/config overrides
+skate3.toml
+CMakeUserPresets.json
+
+# Diagnostics and binary build products
+*.log
+*.dmp
+*.wpix
+*_gpu_events.csv
+*_gpu_screenshot.png
+*.pdb
+*.ilk
+*.obj
+*.lib
+*.exe
+*.map
+
+# Editor and CMake scratch
+/.vs/
+/.vscode/
+/.cache/

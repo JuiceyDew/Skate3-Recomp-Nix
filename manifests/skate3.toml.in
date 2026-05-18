@@ -1,0 +1,10 @@
+[project]
+sdk_version = "0.8.1.19"
+name = "skate3"
+
+[entrypoint]
+file_path = "@SKATE3_GAME_DATA_ROOT_CONFIG@/default.xex"
+out_directory_path = "@SKATE3_SOURCE_DIR_CONFIG@/generated"
+includes = [
+  "@SKATE3_SOURCE_DIR_CONFIG@/config/skate3_functions.toml",
+]

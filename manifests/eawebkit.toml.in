@@ -1,0 +1,12 @@
+[project]
+sdk_version = "0.8.1.19"
+name = "eawebkit"
+
+[entrypoint]
+file_path = "@SKATE3_GAME_DATA_ROOT_CONFIG@/data/webkit/EAWebkit.xex"
+out_directory_path = "@SKATE3_SOURCE_DIR_CONFIG@/generated/eawebkit"
+includes = [
+  "@SKATE3_SOURCE_DIR_CONFIG@/config/eawebkit_functions.toml",
+]
+
+symbol_prefix = "eawebkit_"

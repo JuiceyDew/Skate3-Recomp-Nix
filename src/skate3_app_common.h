@@ -1,0 +1,61 @@
+#pragma once
+
+#include "generated/skate3_init.h"
+
+#include <atomic>
+#include <filesystem>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <set>
+#include <string>
+#include <thread>
+
+#include <rex/rex_app.h>
+#include <rex/ui/overlay/simple_settings_overlay.h>
+
+namespace rex::ui {
+class ImGuiDrawer;
+}
+
+class Skate3BaseApp : public rex::ReXApp {
+ public:
+  using rex::ReXApp::ReXApp;
+  ~Skate3BaseApp() override;
+
+ protected:
+  std::optional<rex::PathConfig> OnFinalizePaths(
+      const rex::PathConfig& defaults,
+      std::function<void(rex::PathConfig)> resume) override;
+  void OnConfigurePaths(rex::PathConfig& paths) override;
+  void OnConfigureFonts(ImFontAtlas* atlas) override;
+  void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override;
+  void OnPostSetup() override;
+  void OnPostLaunchModule(rex::system::XThread* thread) override;
+  void OnShutdown() override;
+  void OnGuestThreadExit(rex::system::XThread* thread) override;
+
+ private:
+  void StopGpuMemoryInvalidationThread();
+  void InstallRecipeOverlay();
+  void InstallBigDeviceAliases();
+  void ToggleSimpleSettings();
+  void ApplySettingsCursorMode();
+  void ApplyGameplayCursorMode();
+  void RestartGame();
+  void SaveDrawFingerprintLog();
+  void ApplySelectedProfileToRuntime();
+
+  static bool IsRecipeNameChar(char c);
+  static std::set<std::string> DiscoverRecipeAliases(
+      const std::filesystem::path& content_root);
+
+  std::filesystem::path config_path_;
+  std::filesystem::path user_settings_path_;
+  std::filesystem::path profiles_path_;
+  std::unique_ptr<rex::ui::SimpleSettingsDialog> simple_settings_dialog_;
+  bool recipe_overlay_installed_ = false;
+  bool big_device_aliases_installed_ = false;
+  std::atomic<bool> invalidate_gpu_memory_thread_running_{false};
+  std::thread invalidate_gpu_memory_thread_;
+};
