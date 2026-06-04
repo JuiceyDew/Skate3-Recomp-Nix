@@ -1,4 +1,8 @@
-![Skate 3 Native PC Recompilation](banner.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="banner.png">
+  <source media="(prefers-color-scheme: light)" srcset="banner-light.png">
+  <img alt="Skate 3 Native PC Recompilation" src="banner-light.png">
+</picture>
 
 An unofficial native recompilation of the Xbox 360 version of Skate 3, supporting Windows and Linux, built with a Skate-specific [rexglue SDK](https://github.com/rexglue/rexglue-sdk) fork.
 
