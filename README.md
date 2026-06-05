@@ -12,9 +12,11 @@ The project does not include Skate 3 retail game files. To run or build the proj
 
 Gameplay (click to go to YouTube):
 
-<a href="https://www.youtube.com/watch?v=FHym2iQROa0">
-  <img src="https://img.youtube.com/vi/FHym2iQROa0/maxresdefault.jpg" alt="Skate 3 Recomp gameplay" width="420">
-</a>
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=FHym2iQROa0">
+    <img src="https://img.youtube.com/vi/FHym2iQROa0/maxresdefault.jpg" alt="Skate 3 Recomp gameplay" width="420">
+  </a>
+</p>
 
 ## How Do I Play?
 
