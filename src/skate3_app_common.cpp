@@ -202,7 +202,11 @@ bool DeveloperConfigHasResolutionScaleOverride(const std::filesystem::path& conf
                                                 "draw_resolution_scale_y"});
 }
 
+#if REX_PLATFORM_MAC
+constexpr int kDefaultResolutionScale = 1;
+#else
 constexpr int kDefaultResolutionScale = 2;
+#endif
 
 void ApplyFirstRunVideoDefaults(const std::filesystem::path& settings_path,
                                 const std::filesystem::path& developer_config_path) {
@@ -287,6 +291,12 @@ void Skate3BaseApp::OnConfigureFonts(ImFontAtlas* atlas) {
       "C:\\Windows\\Fonts\\helvetica.ttf",
       "C:\\Windows\\Fonts\\HelveticaNeue.ttf",
       "C:\\Windows\\Fonts\\arial.ttf",
+#elif defined(__APPLE__)
+      "/System/Library/Fonts/SFNS.ttf",
+      "/System/Library/Fonts/SFCompact.ttf",
+      "/System/Library/Fonts/HelveticaNeue.ttc",
+      "/System/Library/Fonts/LucidaGrande.ttc",
+      "/System/Library/Fonts/Supplemental/Arial.ttf",
 #else
       "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
       "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",

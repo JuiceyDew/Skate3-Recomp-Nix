@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(skate3 VERSION 1.0.0 LANGUAGES CXX)
+project(skate3 VERSION 1.0.1 LANGUAGES CXX)
 
 if(WIN32)
     enable_language(RC)

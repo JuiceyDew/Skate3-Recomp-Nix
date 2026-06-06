@@ -23,8 +23,8 @@ function(skate3_compute_version out_var)
         message(FATAL_ERROR "skate3_compute_version: unparseable describe output '${ARG_GIT_DESCRIBE_LONG}'")
     endif()
 
-    set(commit_count ${CMAKE_MATCH_6})
-    set(short_sha ${CMAKE_MATCH_7})
+    set(commit_count ${CMAKE_MATCH_4})
+    set(short_sha ${CMAKE_MATCH_5})
     set(${out_var} "${ARG_FLOOR_VERSION}.${commit_count}-dev.g${short_sha}" PARENT_SCOPE)
 endfunction()
 

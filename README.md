@@ -38,6 +38,16 @@ Gameplay (click to go to YouTube):
 5. Wait for the installer to extract the game files.
 6. Click "Start Game".
 
+### macOS (ARM / Experimental)
+
+1. Download the latest release Skate3Recomp-macOS.zip from the releases page.
+2. Extract it anywhere you like, to a folder you control.
+3. Run skate3 by double-clicking or "./skate3" in the Terminal.
+4. You may need to approve it in System Preferences before macOS will allow you to run it.
+5. Click "Select ISO" to select your legally obtained copy of Skate 3.
+6. Wait for the installer to extract the game files.
+7. Click "Start Game".
+
 ## Controls
 
 - Standard Xbox controls using an Xbox controller are the preferred and main input method. DualShock and others are untested, but are likely to work with Steam Input through XInput.
