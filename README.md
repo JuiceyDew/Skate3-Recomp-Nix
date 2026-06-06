@@ -4,7 +4,7 @@
   <img alt="Skate 3 Native PC Recompilation" src="banner-light.png">
 </picture>
 
-An unofficial native recompilation of the Xbox 360 version of Skate 3, supporting Windows and Linux, built with a Skate-specific [rexglue SDK](https://github.com/rexglue/rexglue-sdk) fork.
+An unofficial native recompilation of the Xbox 360 version of Skate 3, supporting Windows, Linux, and macOS. Built with a Skate-specific [rexglue SDK](https://github.com/rexglue/rexglue-sdk) fork.
 
 The game is currently capable of running at ~165FPS at 4K with MSAA, using an RTX 4090.
 
