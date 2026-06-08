@@ -933,7 +933,7 @@ void Skate3BaseApp::InstallDlcPackages() {
     }
 
     std::error_code iter_ec;
-    for (const auto& entry : std::filesystem::directory_iterator(source_dir, iter_ec)) {
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(source_dir, iter_ec)) {
       if (iter_ec) {
         REXLOG_WARN("Could not scan Skate 3 DLC folder {}: {}", source_dir.string(),
                     iter_ec.message());
