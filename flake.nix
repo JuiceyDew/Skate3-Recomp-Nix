@@ -41,6 +41,30 @@
           ibus               # libibus-1.0-dev
           liburing           # liburing-dev
         ];
+
+        # A launcher you can expose as a flake app / install into your config.
+        #
+        # NOTE: Skate 3 here is a *static recompilation* — the skate3 binary is
+        # generated from your own legally-dumped game files at build time, so
+        # there is no prebuilt, cacheable package to ship. This launcher runs
+        # the binary you built locally (see the Nix Build section of the
+        # README) from the repository root, wiring up library and Vulkan paths.
+        launcher = pkgs.writeShellApplication {
+          name = "skate3";
+          runtimeInputs = runtimeLibs;
+          text = ''
+            build="''${SKATE3_BUILD:-out/build/linux-relwithdebinfo}"
+            bin="$build/skate3"
+            if [ ! -x "$bin" ]; then
+              echo "skate3 not found at $bin" >&2
+              echo "Build it first inside 'nix develop' (see README), or point" >&2
+              echo "SKATE3_BUILD at your build dir. Run this from the repo root." >&2
+              exit 1
+            fi
+            export LD_LIBRARY_PATH="$PWD/third_party/rexglue-sdk/out/linux-amd64:${pkgs.lib.makeLibraryPath runtimeLibs}:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+            exec "$bin" --game_data_root="''${SKATE3_GAME_DATA_ROOT:-$PWD/game}" --input_backend=sdl "$@"
+          '';
+        };
       in {
         devShells.default = pkgs.mkShell.override { stdenv = llvm.stdenv; } {
           nativeBuildInputs = with pkgs; [
@@ -77,5 +101,14 @@
             echo "skate3recomp dev shell — clang-20: $(clang-20 --version | head -1)"
           '';
         };
+
+        # `nix run` / `nix run .#skate3` launches the locally-built binary.
+        packages.skate3 = launcher;
+        packages.default = launcher;
+        apps.skate3 = {
+          type = "app";
+          program = "${launcher}/bin/skate3";
+        };
+        apps.default = self.apps.${system}.skate3;
       });
 }

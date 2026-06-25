@@ -123,6 +123,81 @@ LD_LIBRARY_PATH="$PWD/third_party/rexglue-sdk/out/linux-amd64${LD_LIBRARY_PATH:+
   ./out/build/linux-relwithdebinfo/skate3 --game_data_root="$PWD/game" --input_backend=sdl
 ```
 
+## Using It as a Flake App
+
+The flake exposes the game as a runnable app so you can launch it with `nix run` and reference it
+from your own NixOS / Home Manager flake.
+
+> **Important — why there is no prebuilt package.** Skate 3 here is a *static recompilation*: the
+> `skate3` binary is **generated from your own legally-dumped game files** during the build. There is
+> nothing to redistribute or cache, so the flake's `packages.default` / `apps.default` is a **launcher**
+> for the binary you built locally (see [Nix Build](#nix-build)). You build once with your game dump,
+> then this launcher runs it with the right library and Vulkan paths wired up.
+
+### Run it directly
+
+After building, from the repository root:
+
+```sh
+nix run .#skate3
+# pass game args through:
+nix run .#skate3 -- --no-fullscreen
+```
+
+The launcher reads two optional environment variables:
+
+- `SKATE3_GAME_DATA_ROOT` — path to your extracted game dump (default: `./game`).
+- `SKATE3_BUILD` — build directory holding the `skate3` binary (default:
+  `out/build/linux-relwithdebinfo`). Set it to `out/build/linux-release` for a release build.
+
+If you haven't built yet, the launcher prints how to do so instead of failing cryptically.
+
+### Add the flake to your config
+
+Add this repo as an input to your system or Home Manager flake:
+
+```nix
+# flake.nix
+{
+  inputs.skate3.url = "github:JuiceyDew/Skate3-Recomp-Nix";
+  # ...
+}
+```
+
+Then expose the launcher as a package. In Home Manager:
+
+```nix
+# home.nix  (module args include `inputs` and `pkgs`)
+home.packages = [ inputs.skate3.packages.${pkgs.system}.default ];
+```
+
+or system-wide in `configuration.nix`:
+
+```nix
+environment.systemPackages = [ inputs.skate3.packages.${pkgs.system}.default ];
+```
+
+This puts a `skate3` command on your `PATH`. Because of the static-recompilation constraint above,
+run it **from your checked-out repo root** (where the built binary and `game/` live), or set
+`SKATE3_BUILD` / `SKATE3_GAME_DATA_ROOT` to absolute paths.
+
+### Build environment in your own flake
+
+If you just want the toolchain (not the launcher), reuse the dev shell from your own project:
+
+```nix
+# in your flake's devShell, or via `nix develop github:JuiceyDew/Skate3-Recomp-Nix`
+inputs.skate3.devShells.${pkgs.system}.default
+```
+
+Or auto-load it with [direnv](https://github.com/nix-community/nix-direnv) by dropping an `.envrc`
+containing `use flake` in the repo — no system-config changes required beyond enabling
+`programs.direnv` if you want the auto-activation.
+
+> **Vulkan note.** The launcher and dev shell rely on your *system* GPU driver exposed at
+> `/run/opengl-driver`, which requires `hardware.graphics.enable = true;` in your NixOS config (the
+> default on desktop setups). This is the only thing the build borrows from your system configuration.
+
 ## Installing DLC
 
 To use DLC, you must provide package files from your own legally obtained Xbox 360 DLC.
