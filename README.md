@@ -41,6 +41,11 @@ nix run github:JuiceyDew/Skate3-Recomp-Nix
 On first launch the **“Select Skate 3 Xbox 360 ISO”** popup appears. Pick your ISO; it’s extracted and
 installed, and the game boots. Later launches find the installed game and start straight away.
 
+> **First-run window.** The ISO picker is a modal GTK file-chooser drawn on top of the game window. A
+> fullscreen window on X11 leaves that dialog unreachable, so the launcher starts the **first run
+> windowed** (until `default.xex` exists in the game directory) and only goes fullscreen once the game
+> is installed. You can override the choice yourself by passing a fullscreen flag after `--`.
+
 By default the game is installed under `~/.local/share/skate3/game` (i.e.
 `$XDG_DATA_HOME/skate3/game`). To use a different location — or point at an already-extracted dump —
 set `SKATE3_GAME_DATA_ROOT`:
@@ -49,13 +54,13 @@ set `SKATE3_GAME_DATA_ROOT`:
 SKATE3_GAME_DATA_ROOT=/games/skate3 nix run github:JuiceyDew/Skate3-Recomp-Nix
 ```
 
-Pass game arguments after `--`, e.g. start windowed:
+Pass game arguments after `--`, e.g. force windowed:
 
 ```sh
-nix run github:JuiceyDew/Skate3-Recomp-Nix -- --no-fullscreen
+nix run github:JuiceyDew/Skate3-Recomp-Nix -- --fullscreen=false
 ```
 
-Fullscreen is on by default. Controller input uses the SDL backend.
+Fullscreen is on by default once the game is installed. Controller input uses the SDL backend.
 
 ## Install It Into Your Config
 

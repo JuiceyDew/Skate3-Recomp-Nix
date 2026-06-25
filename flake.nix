@@ -125,6 +125,17 @@
         # ("cannot create directories: Read-only file system .../bin/logs").
         # Point --log_file at a writable per-user location so logging never
         # touches the store. (Users can still override it via a later flag.)
+        #
+        # First-run ISO import needs windowed mode. When the game isn't
+        # installed yet the binary opens a *modal GTK file chooser*
+        # (gtk_file_chooser_dialog) on top of its own window to pick the ISO.
+        # If that window is fullscreen (the default), an X11 exclusive
+        # fullscreen surface leaves the dialog unreachable/wedged, so the user
+        # sees the picker but can't complete it and force-kills the process.
+        # Until the game is installed (detected by default.xex), start windowed
+        # with --fullscreen=false so the picker is usable; afterwards launch
+        # normally and let fullscreen apply. A user-supplied flag still wins
+        # because "$@" is appended last.
         launcher = pkgs.writeShellApplication {
           name = "skate3";
           runtimeInputs = [ pkgs.coreutils ];
@@ -135,10 +146,18 @@
             echo "skate3: using game data directory: $game" >&2
             echo "skate3: (override with SKATE3_GAME_DATA_ROOT=/path)" >&2
             echo "skate3: writing logs to: $logdir" >&2
+
+            first_run_args=()
+            if [ ! -f "$game/default.xex" ]; then
+              echo "skate3: game not installed; starting windowed so the ISO picker is usable" >&2
+              first_run_args+=(--fullscreen=false)
+            fi
+
             exec ${skate3App}/bin/skate3 \
               --game_data_root="$game" \
               --input_backend=sdl \
               --log_file="$logdir/skate3.log" \
+              "''${first_run_args[@]}" \
               "$@"
           '';
         };
