@@ -5,154 +5,59 @@
 </picture>
 
 A **Nix / NixOS** fork of [skate3recomp](https://github.com/mchughalex/skate3recomp), the unofficial
-native recompilation of the Xbox 360 version of Skate 3. This fork adds a `flake.nix` that provides
-a fully reproducible build environment so the project builds and runs on NixOS (and any machine with
-the Nix package manager) without an `apt install` or a global toolchain. Everything else — the
-runtime, codegen, and rexglue SDK fork — is unchanged from upstream.
+native recompilation of the Xbox 360 version of Skate 3. This fork makes the **upstream prebuilt
+Linux release run on NixOS** with a single `nix run`. It wraps the official `Skate3Recomp-Linux.zip`
+binary so its first-run **“Select ISO”** popup — the one that imports your game — works on a system
+that has no `/usr/lib` and no system dynamic linker.
 
-The game is currently capable of running at ~165FPS at 4K with MSAA, using an RTX 4090.
+The game is capable of running at ~165FPS at 4K with MSAA on an RTX 4090.
 
-The project does not include Skate 3 retail game files. To run or build the project, you must provide
-files from your own legally obtained Xbox 360 copy of Skate 3.
+The project does not include Skate 3 retail game files. The first time you launch it, the binary opens
+a file picker so you can select your own legally obtained Xbox 360 Skate 3 **ISO**, which it then
+extracts and installs.
 
-> **Why this fork?** On NixOS there is no `/usr/lib` or system dynamic linker, so the upstream
-> `apt`-based Linux instructions don't apply. The flake supplies Clang 20, CMake, Ninja, Vulkan, GTK 3,
-> and the audio/input libraries, and shims the version-suffixed compiler names (`clang-20`,
-> `clang++-20`, `ld.lld-20`) the CMake presets expect — so the upstream presets run **unmodified**.
+> **Why this fork?** The upstream Linux binary expects `/lib64/ld-linux-x86-64.so.2` and a system GTK
+> stack, neither of which exists on NixOS, so it can't even start there — which means its ISO-import
+> popup never appears. This flake fetches the official release, patches its interpreter, puts GTK,
+> Vulkan and SDL on its library path, and wires up the GTK runtime so the popup, rendering and
+> controller input all work. The binary itself is unmodified.
 
 ## How Do I Play?
 
-Prebuilt releases (Windows/Linux/macOS) are published by **upstream**, not this fork. Grab them from
-the [upstream releases page](https://github.com/mchughalex/skate3recomp/releases). This fork exists to
-**build from source on Nix** — see [Nix Build](#nix-build) below.
+You need:
 
-## Nix Build
+- **NixOS** (or any Linux with the Nix package manager) with
+  [flakes enabled](https://nixos.wiki/wiki/Flakes) (`experimental-features = nix-command flakes`).
+- A working GPU driver exposed at `/run/opengl-driver` — on NixOS set
+  `hardware.graphics.enable = true;` (the default on most desktop setups).
+- Your own legally obtained Skate 3 Xbox 360 **ISO**.
 
-These instructions target NixOS or any Linux with the Nix package manager and
-[flakes enabled](https://nixos.wiki/wiki/Flakes) (`experimental-features = nix-command flakes`).
-
-ReXGlue requires Clang. This flake pins **Clang 20**, matching the Linux toolchain used by the rexglue
-SDK CI and avoiding the `std::expected` feature-test mismatch seen with older Clang/libstdc++ combos.
-
-Clone with submodules:
+Then just run:
 
 ```sh
-git clone --recursive git@github.com:JuiceyDew/Skate3-Recomp-Nix.git skate3recomp
-cd skate3recomp
+nix run github:JuiceyDew/Skate3-Recomp-Nix
 ```
 
-If you already cloned without submodules:
+On first launch the **“Select Skate 3 Xbox 360 ISO”** popup appears. Pick your ISO; it’s extracted and
+installed, and the game boots. Later launches find the installed game and start straight away.
+
+By default the game is installed under `~/.local/share/skate3/game` (i.e.
+`$XDG_DATA_HOME/skate3/game`). To use a different location — or point at an already-extracted dump —
+set `SKATE3_GAME_DATA_ROOT`:
 
 ```sh
-git submodule sync --recursive
-git submodule update --init --recursive --jobs "$(nproc 2>/dev/null || echo 4)"
+SKATE3_GAME_DATA_ROOT=/games/skate3 nix run github:JuiceyDew/Skate3-Recomp-Nix
 ```
 
-Enter the development shell. This pulls Clang 20, CMake, Ninja, Vulkan, GTK 3, and the audio/input
-libraries, and sets up the `clang-20` / `clang++-20` / `ld.lld-20` shims and Vulkan loader paths:
+Pass game arguments after `--`, e.g. start windowed:
 
 ```sh
-nix develop
+nix run github:JuiceyDew/Skate3-Recomp-Nix -- --no-fullscreen
 ```
 
-The build-time codegen needs an extracted game dump containing `default.xex` and
-`data/webkit/EAWebkit.xex`. Put that dump in `game/`, or pass a path with `SKATE3_GAME_DATA_ROOT`:
+Fullscreen is on by default. Controller input uses the SDL backend.
 
-```sh
-mkdir -p game
-cp /path/to/default.xex /path/to/EAWebkit.xex game/
-```
-
-Generate the recompiled source, reconfigure so CMake sees the generated source lists, and build
-(run these **inside** the `nix develop` shell):
-
-```sh
-cmake --preset linux-relwithdebinfo -DSKATE3_GAME_DATA_ROOT="$PWD/game"
-cmake --build --preset linux-relwithdebinfo --target generate-all --parallel
-cmake --preset linux-relwithdebinfo -DSKATE3_GAME_DATA_ROOT="$PWD/game"
-cmake --build --preset linux-relwithdebinfo --parallel
-```
-
-Build a Linux release with the `linux-release` preset. The release artifacts are:
-
-```text
-out/build/linux-release/skate3
-out/build/linux-release/librexruntime.so
-```
-
-### GPU drivers (Vulkan ICD)
-
-The flake's `shellHook` points `VK_ICD_FILENAMES` at the system NixOS GPU driver under
-`/run/opengl-driver`. This requires `hardware.graphics.enable = true;` in your NixOS configuration
-(the default on most desktop setups). Check which ICD matches your card and trim the
-`VK_ICD_FILENAMES` line in `flake.nix` accordingly:
-
-```sh
-ls /run/opengl-driver/share/vulkan/icd.d/
-vulkaninfo | head   # should report your GPU; run inside the nix develop shell
-```
-
-## Running a Development Build
-
-On Linux, inside the `nix develop` shell:
-
-```sh
-./scripts/run-linux.sh
-```
-
-The launcher sets `LD_LIBRARY_PATH` for development builds, passes `--game_data_root="$PWD/game"`, and
-selects SDL controller input on Linux. To use a game dump outside the repository:
-
-```sh
-SKATE3_GAME_DATA_ROOT="/path/to/extracted/game" ./scripts/run-linux.sh
-```
-
-Keyboard-to-controller emulation is off by default. Pass `--mnk_mode` or set `SKATE3_MNK=1` to enable
-it:
-
-```sh
-SKATE3_MNK=1 ./scripts/run-linux.sh
-```
-
-Fullscreen is on by default. Pass `--no-fullscreen` to start windowed.
-
-To run the Linux development executable directly:
-
-```sh
-LD_LIBRARY_PATH="$PWD/third_party/rexglue-sdk/out/linux-amd64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-  ./out/build/linux-relwithdebinfo/skate3 --game_data_root="$PWD/game" --input_backend=sdl
-```
-
-## Using It as a Flake App
-
-The flake exposes the game as a runnable app so you can launch it with `nix run` and reference it
-from your own NixOS / Home Manager flake.
-
-> **Important — why there is no prebuilt package.** Skate 3 here is a *static recompilation*: the
-> `skate3` binary is **generated from your own legally-dumped game files** during the build. There is
-> nothing to redistribute or cache, so the flake's `packages.default` / `apps.default` is a **launcher**
-> for the binary you built locally (see [Nix Build](#nix-build)). You build once with your game dump,
-> then this launcher runs it with the right library and Vulkan paths wired up.
-
-### Run it directly
-
-After building, from the repository root:
-
-```sh
-nix run .#skate3
-# pass game args through:
-nix run .#skate3 -- --no-fullscreen
-```
-
-The launcher reads two optional environment variables:
-
-- `SKATE3_GAME_DATA_ROOT` — path to your extracted game dump (default: `./game`).
-- `SKATE3_BUILD` — build directory holding the `skate3` binary (default:
-  `out/build/linux-relwithdebinfo`). Set it to `out/build/linux-release` for a release build.
-
-If you haven't built yet, the launcher prints how to do so instead of failing cryptically.
-
-### Add the flake to your config
+## Install It Into Your Config
 
 Add this repo as an input to your system or Home Manager flake:
 
@@ -164,7 +69,7 @@ Add this repo as an input to your system or Home Manager flake:
 }
 ```
 
-Then expose the launcher as a package. In Home Manager:
+Then add the launcher to your packages. In Home Manager:
 
 ```nix
 # home.nix  (module args include `inputs` and `pkgs`)
@@ -177,38 +82,37 @@ or system-wide in `configuration.nix`:
 environment.systemPackages = [ inputs.skate3.packages.${pkgs.system}.default ];
 ```
 
-This puts a `skate3` command on your `PATH`. Because of the static-recompilation constraint above,
-run it **from your checked-out repo root** (where the built binary and `game/` live), or set
-`SKATE3_BUILD` / `SKATE3_GAME_DATA_ROOT` to absolute paths.
+This puts a `skate3` command on your `PATH`. Run `skate3` from anywhere; it manages the install
+directory and ISO import for you.
 
-### Build environment in your own flake
-
-If you just want the toolchain (not the launcher), reuse the dev shell from your own project:
-
-```nix
-# in your flake's devShell, or via `nix develop github:JuiceyDew/Skate3-Recomp-Nix`
-inputs.skate3.devShells.${pkgs.system}.default
-```
-
-Or auto-load it with [direnv](https://github.com/nix-community/nix-direnv) by dropping an `.envrc`
-containing `use flake` in the repo — no system-config changes required beyond enabling
-`programs.direnv` if you want the auto-activation.
-
-> **Vulkan note.** The launcher and dev shell rely on your *system* GPU driver exposed at
+> **Vulkan note.** The wrapped binary relies on your *system* GPU driver exposed at
 > `/run/opengl-driver`, which requires `hardware.graphics.enable = true;` in your NixOS config (the
-> default on desktop setups). This is the only thing the build borrows from your system configuration.
+> default on desktop setups). Check your ICD is visible with `ls /run/opengl-driver/share/vulkan/icd.d/`.
+
+## Flake Outputs
+
+| Output | What it is |
+| --- | --- |
+| `packages.default` / `packages.skate3` | Launcher that picks a writable game dir and runs the wrapped binary. |
+| `packages.skate3-unwrapped` | The patched upstream binary + `librexruntime.so`, without the launcher logic. |
+| `apps.default` / `apps.skate3` | `nix run` target for the launcher. |
+| `devShells.default` | Clang 20 / CMake / Vulkan toolchain for building from source (see below). |
+
+The launcher reads:
+
+- `SKATE3_GAME_DATA_ROOT` — where the game is installed / extracted (default
+  `~/.local/share/skate3/game`).
 
 ## Installing DLC
 
-To use DLC, you must provide package files from your own legally obtained Xbox 360 DLC.
-
-Create a `dlc` folder either beside the executable, inside the installed game folder, or in the user
-data folder. Place the DLC package files in that folder and start the game.
+To use DLC, provide package files from your own legally obtained Xbox 360 DLC. Create a `dlc` folder
+beside the executable, inside the installed game folder, or in the user data folder, drop the DLC
+package files in it, and start the game.
 
 ## True 21:9 Ultrawide
 
-The builds include an experimental true ultrawide aspect ratio mode at 21:9. You may notice occasional
-visual bugs or graphical glitches, especially around shadows. Performance is somewhat reduced.
+The build includes an experimental true ultrawide aspect ratio mode at 21:9. You may notice occasional
+visual bugs, especially around shadows, and performance is somewhat reduced.
 
 ## Controls
 
@@ -228,23 +132,59 @@ visual bugs or graphical glitches, especially around shadows. Performance is som
 - Right stick press: MMB
 - Back/Start: Tab/Return
 
-## rexglue Fork
+## Build From Source (optional)
 
-`third_party/rexglue-sdk` is pinned as a Git submodule to the `skate3-sdk-clean` branch of the
-Skate-specific rexglue fork. Clone recursively or run:
+You only need this if you want to recompile the binary yourself instead of using the upstream release.
+Skate 3 here is a *static recompilation*: the `skate3` binary is generated from your own
+legally-dumped game files at build time, so there is nothing prebuilt to cache for this path.
+
+Clone with submodules and enter the dev shell (Clang 20, CMake, Ninja, Vulkan, GTK 3, audio/input
+libs, plus `clang-20` / `clang++-20` / `ld.lld-20` shims so the upstream presets run unmodified):
+
+```sh
+git clone --recursive git@github.com:JuiceyDew/Skate3-Recomp-Nix.git skate3recomp
+cd skate3recomp
+nix develop
+```
+
+The build-time codegen needs an extracted dump containing `default.xex` and
+`data/webkit/EAWebkit.xex`:
+
+```sh
+mkdir -p game
+cp /path/to/default.xex /path/to/EAWebkit.xex game/
+```
+
+Generate the recompiled source, reconfigure so CMake sees the generated source lists, then build
+(inside the `nix develop` shell):
+
+```sh
+cmake --preset linux-relwithdebinfo -DSKATE3_GAME_DATA_ROOT="$PWD/game"
+cmake --build --preset linux-relwithdebinfo --target generate-all --parallel
+cmake --preset linux-relwithdebinfo -DSKATE3_GAME_DATA_ROOT="$PWD/game"
+cmake --build --preset linux-relwithdebinfo --parallel
+```
+
+Run the locally-built binary (note this is the *runtime* game data, which the ISO popup also
+populates):
+
+```sh
+LD_LIBRARY_PATH="$PWD/third_party/rexglue-sdk/out/linux-amd64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+  ./out/build/linux-relwithdebinfo/skate3 --game_data_root="$PWD/game" --input_backend=sdl
+```
+
+`third_party/rexglue-sdk` is pinned as a Git submodule on the `skate3-sdk-clean` branch of the
+Skate-specific rexglue fork (based on rexglue 0.8.0). If you cloned without submodules:
 
 ```sh
 git submodule sync --recursive
 git submodule update --init --recursive --jobs "$(nproc 2>/dev/null || echo 4)"
 ```
 
-The fork is based on rexglue's 0.8.0 release line and contains the Skate 3 runtime, codegen, input,
-graphics, timing, and Linux fixes needed by this project.
-
 ## Credits
 
 - [skate3recomp](https://github.com/mchughalex/skate3recomp) by mchughalex — the upstream project this
-  is forked from.
+  is forked from, and the source of the prebuilt release this flake wraps.
 - [rexglue SDK](https://github.com/rexglue/rexglue-sdk), the recompilation SDK used by this project.
 - [Xenia](https://github.com/xenia-project/xenia), whose Xbox 360 research and tooling have helped the
   broader recompilation ecosystem.
