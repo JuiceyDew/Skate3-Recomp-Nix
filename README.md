@@ -102,6 +102,11 @@ The launcher reads:
 
 - `SKATE3_GAME_DATA_ROOT` — where the game is installed / extracted (default
   `~/.local/share/skate3/game`).
+- `XDG_STATE_HOME` — base for the writable log directory
+  (`$XDG_STATE_HOME/skate3/logs`, default `~/.local/state/skate3/logs`). The
+  upstream binary defaults to a `logs` folder beside the executable, which on
+  NixOS is the read-only store; the launcher redirects logging here so startup
+  doesn't abort.
 
 ## Installing DLC
 

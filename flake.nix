@@ -118,15 +118,28 @@
         # the wrapped binary. On first run the binary shows the "Select ISO"
         # popup and extracts your own legally-dumped Skate 3 ISO into that dir;
         # subsequent runs find the installed game there and boot straight in.
+        #
+        # The runtime writes its log files into a "logs" directory next to the
+        # executable. Our executable lives in the read-only Nix store, so that
+        # default aborts the process at startup with a std::filesystem error
+        # ("cannot create directories: Read-only file system .../bin/logs").
+        # Point --log_file at a writable per-user location so logging never
+        # touches the store. (Users can still override it via a later flag.)
         launcher = pkgs.writeShellApplication {
           name = "skate3";
           runtimeInputs = [ pkgs.coreutils ];
           text = ''
             game="''${SKATE3_GAME_DATA_ROOT:-''${XDG_DATA_HOME:-$HOME/.local/share}/skate3/game}"
-            mkdir -p "$game"
+            logdir="''${XDG_STATE_HOME:-$HOME/.local/state}/skate3/logs"
+            mkdir -p "$game" "$logdir"
             echo "skate3: using game data directory: $game" >&2
             echo "skate3: (override with SKATE3_GAME_DATA_ROOT=/path)" >&2
-            exec ${skate3App}/bin/skate3 --game_data_root="$game" --input_backend=sdl "$@"
+            echo "skate3: writing logs to: $logdir" >&2
+            exec ${skate3App}/bin/skate3 \
+              --game_data_root="$game" \
+              --input_backend=sdl \
+              --log_file="$logdir/skate3.log" \
+              "$@"
           '';
         };
 
